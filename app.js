@@ -1,143 +1,131 @@
 function draw(data){
-    var container_dimensions = {
-        width:900,
-        height: 900
-    };
+    var layout_gravity = -0.02, damper = 0.1;
 
-    var margins = {
-        top:10,
-        right: 20,
-        bottom: 30,
-        left:60
-    };
 
     var chart_dimensions = {
-        width: container_dimensions.width - margins.left - margins.right,
-        height: container_dimensions.height - margins.top - margins.bottom
+        width: 1000,
+        height: 700
     };
 
-    var chart = d3.select('#timeseries')
+    var center = {
+        x: chart_dimensions.width / 2,
+        y: chart_dimensions.height / 2
+    };
+
+
+    var chart = d3.select('#container')
         .append('svg')
-        .attr('width', container_dimensions.width)
-        .attr('height', container_dimensions.height)
+        .attr('width', chart_dimensions.width)
+        .attr('height', chart_dimensions.height)
         .append('g')
-        .attr('id', 'chart')
-        .attr('transform', 'translate(' + margins.left + ',' + margins.top +  ')');
+        .attr('id', 'chart');
 
-    var date_extent = d3.extent(data.view_counts, function(d){return d.date;});
-    var count_extent = d3.extent(data.view_counts, function(d){return d.sum;});
+    var max = d3.max(data, (d)=> d.view_count);
+    //var fill =   d3.scale.ordinal().range(['#827d92'...'#2a3285','#383435'])
 
-    console.log(date_extent);
-    console.log(count_extent);
+    var scale = d3.scale
+        .pow()
+        .exponent(1)
+        .domain([0, max])
+        .range([20 , 100]);
 
-    var date_scale = d3.time.scale()
-        .range([0, chart_dimensions.width])
-        .domain(date_extent);
+    var tech_colors = {
+        es6: '#f0db4e',
+        node: '#8cc84b',
+        mv: '#bd473d',
+        graphics: '#f19d45'
+    }
 
-    var date_axis = d3.svg.axis().scale(date_scale);
-
-    chart.append('g')
-        .attr('class', 'x axis')
-        .attr('transform', 'translate(0, ' + chart_dimensions.height + ')')
-        .call(date_axis);
-
-    var count_scale = d3.scale.linear()
-        .range([chart_dimensions.height, 0])
-        .domain(count_extent);
-
-    var count_axis = d3.svg.axis().scale(count_scale)
-        .orient('left');
-
-    chart.append('g')
-        .attr('class', 'y axis')
-        .call(count_axis);
+    _.each(data, function (d) {
+        d.radius = scale(d.view_count);
+        d.y = Math.random() * chart_dimensions.height;
+        d.x = Math.random() * chart_dimensions.width;
+        d.tech = d.tech.split(' ');
+        d.color = tech_colors[_(tech_colors).keys().find(function(k){
+            return d.tech.indexOf(k) > -1;
+        })] || '#3c475a';
+    });
 
 
-    var color = d3.scale.category20();
-    var videos_with_colors = _(data.videos)
-        .map(function(v, i){
-            return {
-                video: v,
-                color: color(i)
-            };
-        })
-        .indexBy(function(v){
-            return v.video;
-        })
-        .value();
 
-    var key_items = d3.select("#key")
-        .selectAll('div')
-        .data(data.videos)
+    var nodes  = chart.selectAll('.node')
+        .data(data)
         .enter()
-        .append('div')
-        .attr('class', 'key_item')
-        .style('color', function(v){
-            return videos_with_colors[v].color;
-        })
-        .text(function(v){
-            return v;
+        .append('g')
+        .attr('class', 'node');
+
+    var circles = nodes
+        .append('circle')
+        .attr('r', 0)
+        .attr('fill', (d) => d.color)
+        .attr('stroke-width', 2)
+        .attr('stroke', '#fff')
+        .attr('cx', (d)=> d.x)
+        .attr('cy', (d)=> d.y)
+        .on("mouseover", (d,i) => {
+            d3.select('#key')
+                .text(d.title)
+                .style('color', d.color);
+
+            d3.select(this)
+                .transition()
+                .attr('r', (d)=> d.radius * 2);
         });
 
 
+    var labels = nodes
+        .append('text')
+        .attr('class', 'label')
+        .text((d)=> d.view_count);
 
-    var line = d3.svg.line()
-        .x(function(d){return date_scale(d.date);})
-        .y(function(d){return count_scale(d.sum);})
-        .interpolate('step-closed');
+    // console.log(circles);
 
-    function addVideoSeries(video, i){
-        var video_data = data.view_counts.filter(function(vc){return vc.video === video;});
-        var joined_video_name = video.replace(/\s/g, '_');
-        var video_color = videos_with_colors[video].color;
-
-        var g = chart.append('g')
-            .attr('id', joined_video_name + '_path')
-            .attr('class', joined_video_name + ' series_path');
-
-        g.selectAll('circle')
-            .data(video_data)
-            .enter()
-            .append('circle')
-            .attr('cx', function(d){return date_scale(d.date);})
-            .attr('cy', function(d){return count_scale(d.sum);})
-            .attr('r', 0)
-            .attr('fill', function(d, i){return video_color;})
-            .attr('stroke', 'none')
-            .on('mouseover', function(){
-                d3.select(this)
-                    .transition()
-                    .attr('r', 9);
-            })
-            .on('mouseout', function(){
-                d3.select(this)
-                    .transition()
-                    .attr('r', 5);
-            });
-
-        g.selectAll('circle')
-            .transition()
-            .delay(function(d, i){
-                return i / video_data.length * 1000;
-            })
-            .attr('r', 5);
+    circles.transition()
+            .duration(2000)
+            .attr("r", (d) => d.radius);
 
 
-
-
-
-        g.append('path')
-            .attr('d', line(video_data))
-            .attr('stroke', video_color);
-
+    function moveTowardsCenter(alpha){
+        return function(d){
+            d.x = d.x + (center.x - d.x) * (damper + 0.02) * alpha.alpha;
+            d.y = d.y + (center.y - d.y) * (damper + 0.02) * alpha.alpha;
+            return d;
+        }
     }
 
-    _(data.videos).each(addVideoSeries).value();
+    var force = d3.layout.force()
+        .nodes(data)
+        .size([chart_dimensions.width, chart_dimensions.height])
+        .gravity(layout_gravity)
+        .charge((d)=>  -Math.pow(d.radius, 2.0) / 7)
+        .friction(0.9)
+        .on('tick', function(alpha){
+            nodes.each(moveTowardsCenter(alpha));
+
+            circles
+                .attr("cx", (d) => d.x)
+                .attr("cy", (d) => d.y);
+
+            labels
+                .attr("x", (d) => d.x - d.radius/3)
+                .attr("y", (d) => d.y);
+        })
+        .start();
 
 
-}
 
-d3.json('data.json', draw);
+
+//     var aspect = 960 / 500,
+//         chart = $("#chart");
+
+//     $(window).on("resize", function() {
+//         var targetWidth = chart.parent().width();
+//         chart.attr("width", targetWidth);
+//         chart.attr("height", targetWidth / aspect);
+//     });
+ }
+
+d3.json('http://tagtree.tv/feed.json', draw);
 
 
 

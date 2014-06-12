@@ -1,5 +1,6 @@
 var gulp = require('gulp'),
-  connect = require('gulp-connect');
+  connect = require('gulp-connect'),
+  traceur = require('gulp-traceur');
 
 gulp.task('connect', function() {
   connect.server({
@@ -8,13 +9,17 @@ gulp.task('connect', function() {
 });
 
 gulp.task('all_root', function () {
-  console.log('in all_root task');
-  gulp.src('./*.*')
-    .pipe(connect.reload());
+    console.log('in all_root task');
+    gulp.src('./app.js')
+        .pipe(traceur({sourceMap: false}))
+        .pipe(gulp.dest('dist'));
+
+    gulp.src('./*.*')
+        .pipe(connect.reload());
 });
 
 gulp.task('watch', function () {
   gulp.watch(['./*.*'], ['all_root']);
 });
 
-gulp.task('default', ['connect', 'watch']);
+gulp.task('default', ['connect', 'watch', 'all_root']);
