@@ -8,7 +8,8 @@ gulp.task('connect', function() {
 });
 
 gulp.task('all_root', function () {
-  gulp.src('./*.')
+  console.log('in all_root task');
+  gulp.src('./*.*')
     .pipe(connect.reload());
 });
 

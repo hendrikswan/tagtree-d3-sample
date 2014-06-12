@@ -3,12 +3,55 @@
 <head>
     <title>A d3 playground</title>
     <script type="text/javascript" src="bower_components/d3/d3.js"></script>
-    <script type="text/javascript" src="bower_components/jquery/dist/jquery.js"></script>
+    <script type="text/javascript" src="bower_components/lodash/dist/lodash.js"></script>
+    <script type="text/javascript" src="bower_components/json2/json2.js"></script>
     <script type="text/javascript" src="app.js"></script>
+    <script type="text/javascript" src="parse.js"></script>
 
 
+
+    <style>
+        body {
+            font-family: helvetica;
+        }
+
+        #timeseries {
+            float: left;
+        }
+
+        .axis path, line {
+            stroke: black;
+        }
+
+        .domain {
+          fill: none;
+          stroke: black;
+          stroke-width; 1;
+        }
+
+        .series_path {
+                fill: none;
+          stroke: black;
+          stroke-width: 2;
+        }
+
+        .key_item {
+            font-family: helvetica;
+            padding-bottom: 10px;
+        }
+
+/*        .MEAN_stack_-_episode_1 {
+            stroke: brown;
+        }*/
+
+
+    </style>
 </head>
 <body>
+    <div id="timeseries">
+    </div>
+
+    <div id="key"></div>
 
 </body>
 </html>
