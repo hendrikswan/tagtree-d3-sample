@@ -112,17 +112,6 @@ function draw(data){
         })
         .start();
 
-
-
-
-//     var aspect = 960 / 500,
-//         chart = $("#chart");
-
-//     $(window).on("resize", function() {
-//         var targetWidth = chart.parent().width();
-//         chart.attr("width", targetWidth);
-//         chart.attr("height", targetWidth / aspect);
-//     });
  }
 
 d3.json('http://tagtree.tv/feed.json', draw);
